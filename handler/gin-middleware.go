@@ -33,7 +33,7 @@ func (h *Handler) GinVerifyStudent(ctx *gin.Context) {
 
 func (h *RoleCheckerHandler) GinVerifyRole(ctx *gin.Context) {
 	entity, exists := ctx.Get(constants.SESSION)
-	if exists != true {
+	if !exists {
 		ctx.AbortWithStatusJSON(200, gin.H{
 			"message": constants.ERROR_ROLE_CHECK_FAILED,
 			"error":   "Entity does not exist",
