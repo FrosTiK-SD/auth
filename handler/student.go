@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/FrosTiK-SD/auth/constants"
 	"github.com/FrosTiK-SD/auth/controller"
@@ -173,6 +174,8 @@ func (h *Handler) HandlerRegisterStudentDetails(ctx *gin.Context) {
 		PersonalEmail:  newStudentDetails.PersonalEmail,
 		Mobile:         newStudentDetails.Mobile,
 		Gender:         newStudentDetails.Gender,
+		CreatedAt:      primitive.NewDateTimeFromTime(time.Now()),
+		UpdatedAt:      primitive.NewDateTimeFromTime(time.Now()),
 	}
 
 	if result, err := db.InsertOne(h.MongikClient, constants.DB, constants.COLLECTION_STUDENT, newStudent); err != nil {
