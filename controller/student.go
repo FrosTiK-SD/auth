@@ -3,6 +3,7 @@ package controller
 import (
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/FrosTiK-SD/auth/constants"
 	"github.com/FrosTiK-SD/auth/model"
@@ -69,7 +70,7 @@ func AssignUnVerifiedFields(updated *studentModel.Student, current *studentModel
 	current.Category = updated.Category
 	current.MotherTongue = updated.MotherTongue
 	current.ParentsDetails = updated.ParentsDetails
-	current.UpdatedAt = updated.UpdatedAt
+	current.UpdatedAt = primitive.NewDateTimeFromTime(time.Now().UTC())
 }
 
 func SetVerificationToNotVerified(verification *misc.Verification) {
