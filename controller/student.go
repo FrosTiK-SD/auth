@@ -69,6 +69,7 @@ func AssignUnVerifiedFields(updated *studentModel.Student, current *studentModel
 	current.Category = updated.Category
 	current.MotherTongue = updated.MotherTongue
 	current.ParentsDetails = updated.ParentsDetails
+	current.UpdatedAt = updated.UpdatedAt
 }
 
 func SetVerificationToNotVerified(verification *misc.Verification) {
