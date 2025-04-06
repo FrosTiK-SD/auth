@@ -4,6 +4,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/FrosTiK-SD/auth/constants"
 	"github.com/FrosTiK-SD/auth/model"
@@ -70,6 +71,7 @@ func AssignUnVerifiedFields(updated *studentModel.Student, current *studentModel
 	current.Category = updated.Category
 	current.MotherTongue = updated.MotherTongue
 	current.ParentsDetails = updated.ParentsDetails
+	current.UpdatedAt = primitive.NewDateTimeFromTime(time.Now().UTC())
 }
 
 func SetVerificationToNotVerified(verification *misc.Verification) {
@@ -140,6 +142,7 @@ func InvalidateVerifiedFieldsOnChange(updated *studentModel.Student, current *st
 func GetAllStudents(mongikClient *models.Mongik, noCache bool, currentPage int, studentsPerPage int, search string) (*[]model.StudentPopulated, int, error) {
 	var pipeline []bson.M
 
+
 	// Add search functionality
 	if search != "" {
 		// Basic text search conditions for name fields
@@ -189,7 +192,7 @@ func GetAllStudents(mongikClient *models.Mongik, noCache bool, currentPage int, 
 		totalStudents = countResult[0]["total"]
 	}
 
-	// Add lookup for groups
+
 	pipeline = append(pipeline, bson.M{
 		"$lookup": bson.M{
 			"from":         constants.COLLECTION_GROUP,
@@ -207,13 +210,14 @@ func GetAllStudents(mongikClient *models.Mongik, noCache bool, currentPage int, 
 		)
 	}
 
-	// Get paginated students
+
 	students, err := db.Aggregate[model.StudentPopulated](mongikClient, constants.DB, constants.COLLECTION_STUDENT, pipeline, noCache)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	return &students, totalStudents, nil
+
 }
 
 func GetStudentById(mongikClient *models.Mongik, _id primitive.ObjectID, noCache bool) (*model.StudentPopulated, error) {
