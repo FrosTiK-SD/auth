@@ -136,18 +136,40 @@ func InvalidateVerifiedFieldsOnChange(updated *studentModel.Student, current *st
 	}
 }
 
-func GetAllStudents(mongikClient *models.Mongik, noCache bool) (*[]model.StudentPopulated, error) {
-	students, err := db.Aggregate[model.StudentPopulated](mongikClient, constants.DB, constants.COLLECTION_STUDENT, []bson.M{
-		{
-			"$lookup": bson.M{
-				"from":         constants.COLLECTION_GROUP,
-				"localField":   "groups",
-				"foreignField": "_id",
-				"as":           "groups",
+func GetAllStudents(mongikClient *models.Mongik, noCache bool, currentPage int, studentsPerPage int, search string) (*[]model.StudentPopulated, int, error) {
+	var pipeline []bson.M
+
+	if search != "" {
+		pipeline = append(pipeline, bson.M{
+			"$match": bson.M{
+				"$or": []bson.M{
+					{"firstName": bson.M{"$regex": search, "$options": "i"}},
+					{"lastName": bson.M{"$regex": search, "$options": "i"}},
+					{"RollNo": bson.M{"$regex": search, "$options": "i"}}, // Case-insensitive match on RollNo
+				},
 			},
+		})
+	}
+
+	pipeline = append(pipeline, bson.M{
+		"$lookup": bson.M{
+			"from":         constants.COLLECTION_GROUP,
+			"localField":   "groups",
+			"foreignField": "_id",
+			"as":           "groups",
 		},
-	}, noCache)
-	return &students, err
+	})
+
+	if currentPage != 0 && studentsPerPage != 0 {
+		skip := (currentPage - 1) * studentsPerPage
+		pipeline = append(pipeline,
+			bson.M{"$skip": skip},
+			bson.M{"$limit": studentsPerPage},
+		)
+	}
+
+	students, err := db.Aggregate[model.StudentPopulated](mongikClient, constants.DB, constants.COLLECTION_STUDENT, pipeline, noCache)
+	return &students, 1200, err
 }
 
 func GetStudentById(mongikClient *models.Mongik, _id primitive.ObjectID, noCache bool) (*model.StudentPopulated, error) {

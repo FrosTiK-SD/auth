@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/FrosTiK-SD/auth/constants"
 	"github.com/FrosTiK-SD/auth/controller"
@@ -26,22 +27,32 @@ func GetStudentRoleObjectID() primitive.ObjectID {
 }
 
 func (h *Handler) GetAllStudents(ctx *gin.Context) {
-
 	noCache := util.GetNoCache(ctx)
 
-	students, err := controller.GetAllStudents(h.MongikClient, noCache)
+	search := ctx.Query("search")
+
+	currentPageStr := ctx.DefaultQuery("page", "0")
+	studentsPerPageStr := ctx.DefaultQuery("limit", "0")
+
+	currentPage, err := strconv.Atoi(currentPageStr)
+
+	studentsPerPage, err := strconv.Atoi(studentsPerPageStr)
+
+	students, totalStudents, err := controller.GetAllStudents(h.MongikClient, noCache, currentPage, studentsPerPage, search)
 
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"data":  nil,
 			"error": err,
 		})
+		return
 	}
-	ctx.JSON(http.StatusOK,
-		gin.H{
-			"data":  students,
-			"error": nil,
-		})
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"data":          students,
+		"totalStudents": totalStudents,
+		"error":         nil,
+	})
 }
 
 func (h *Handler) GetStudentById(ctx *gin.Context) {
