@@ -142,32 +142,34 @@ func InvalidateVerifiedFieldsOnChange(updated *studentModel.Student, current *st
 func GetAllStudents(mongikClient *models.Mongik, noCache bool, currentPage int, studentsPerPage int, search string) (*[]model.StudentPopulated, int, error) {
 	var pipeline []bson.M
 
-
 	// Add search functionality
-	if search != "" {
-		// Basic text search conditions for name fields
-		searchConditions := []bson.M{
-			{"firstName": bson.M{"$regex": search, "$options": "i"}},
-			{"lastName": bson.M{"$regex": search, "$options": "i"}},
-		}
+	if search != "" && len(search) > 0 {
+		var searchConditions []bson.M
 
 		if search[0] >= '0' && search[0] <= '9' {
-			// If search starts with a digit, treat it as a roll number search
-			// Check if the search string is a valid roll number
+			// If search starts with a digit, search ONLY on rollNo
+			// Validate that the search string is a valid number
 			if _, err := strconv.Atoi(search); err != nil {
 				return nil, 0, err
 			}
-			// If the search string is a valid roll number, create a range search
+
 			// Create lower and upper bounds for roll number range search
 			lowerBound, upperBound := getRollNumberBounds(search)
 
-			// Add roll number range condition
-			searchConditions = append(searchConditions, bson.M{
-				"rollNo": bson.M{
-					"$gte": lowerBound,
-					"$lte": upperBound,
+			searchConditions = []bson.M{
+				{
+					"rollNo": bson.M{
+						"$gte": lowerBound,
+						"$lte": upperBound,
+					},
 				},
-			})
+			}
+		} else {
+			// If search starts with a letter, search ONLY on firstName or lastName
+			searchConditions = []bson.M{
+				{"firstName": bson.M{"$regex": search, "$options": "i"}},
+				{"lastName": bson.M{"$regex": search, "$options": "i"}},
+			}
 		}
 
 		pipeline = append(pipeline, bson.M{
@@ -192,7 +194,6 @@ func GetAllStudents(mongikClient *models.Mongik, noCache bool, currentPage int, 
 		totalStudents = countResult[0]["total"]
 	}
 
-
 	pipeline = append(pipeline, bson.M{
 		"$lookup": bson.M{
 			"from":         constants.COLLECTION_GROUP,
@@ -210,14 +211,12 @@ func GetAllStudents(mongikClient *models.Mongik, noCache bool, currentPage int, 
 		)
 	}
 
-
 	students, err := db.Aggregate[model.StudentPopulated](mongikClient, constants.DB, constants.COLLECTION_STUDENT, pipeline, noCache)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	return &students, totalStudents, nil
-
 }
 
 func GetStudentById(mongikClient *models.Mongik, _id primitive.ObjectID, noCache bool) (*model.StudentPopulated, error) {
@@ -263,28 +262,4 @@ func GetAllStudentsOfRole(mongikClient *models.Mongik, role string, noCache bool
 		noCache)
 
 	return &roleStudents, err
-}
-
-// Helper function to create roll number bounds for searching
-func getRollNumberBounds(searchDigits string) (int, int) {
-	// Calculate number of padding digits needed
-	paddingLength := 8 - len(searchDigits)
-
-	// If search is already 8 digits or more, just convert to integer
-	if paddingLength <= 0 {
-		num, _ := strconv.Atoi(searchDigits[:8])
-		return num, num
-	}
-
-	// Create lower bound by padding with zeros
-	lowerStr := searchDigits + strings.Repeat("0", paddingLength)
-
-	// Create upper bound by padding with nines
-	upperStr := searchDigits + strings.Repeat("9", paddingLength)
-
-	// Convert to integers
-	lowerBound, _ := strconv.Atoi(lowerStr)
-	upperBound, _ := strconv.Atoi(upperStr)
-
-	return lowerBound, upperBound
 }
