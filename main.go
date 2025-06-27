@@ -89,6 +89,7 @@ func main() {
 	companies := r.Group("/api/company", handler.GinVerifyStudent)
 	{
 		companies.GET("/all", handler.GetRoleCheckHandlerForStudent(constants.ROLE_COMPANY_ALL_READ), handler.GetAllCompanies)
+		companies.POST("/recruiterAndCompany", handler.GetRoleCheckHandlerForStudent(constants.ROLE_COMPANY_ALL_READ), handler.CreateRecruiterAndCompany)
 	}
 
 	port := "" + os.Getenv("PORT")
