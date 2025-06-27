@@ -55,7 +55,6 @@ func (h *Handler) CreateRecruiterAndCompany(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(400, gin.H{"error": err.Error()})
 		return
 	}
-
 	// 1. Insert company
 	companyResult, err := db.InsertOne(h.MongikClient, constants.DB, constants.COLLECTION_COMPANY, req.Company)
 	if err != nil {
@@ -70,8 +69,7 @@ func (h *Handler) CreateRecruiterAndCompany(ctx *gin.Context) {
 	recruiterObj["isActive"] = true
 	recruiterObj["company"] = companyID
 
-	// Add initial groups
-	groups, err := batchConvertToObjectID(InitialGroupIDs)
+	groups, err := batchConvertToObjectID([]string{"645afd0cfec4439851def4de"})
 	if err != nil {
 		ctx.AbortWithStatusJSON(500, gin.H{"error": "Invalid group ID"})
 		return
