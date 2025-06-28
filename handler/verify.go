@@ -2,7 +2,6 @@ package handler
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/FrosTiK-SD/auth/constants"
@@ -52,41 +51,31 @@ func (h *Handler) HandlerVerifyRecruiterIdToken(ctx *gin.Context) {
 	if ctx.GetHeader("cache-control") == constants.NO_CACHE {
 		noCache = true
 	}
-	email, exp, err := controller.VerifyToken(h.MongikClient.CacheClient, idToken, h.JwkSet, noCache)
-	fmt.Println("Email ", *email)
-	if err != nil {
-		status := 500
-		if err != nil && len(*err) >= 4 && (*err)[:4] == "auth" {
-			status = 401
+	email, _, err := controller.VerifyToken(h.MongikClient.CacheClient, idToken, h.JwkSet, noCache)
+
+	if email != nil && *email != "" {
+		recruiter, recErr := controller.GetRecruiterByEmail(h.MongikClient, email, &constants.ROLE_RECRUITER, noCache)
+		if recErr != nil {
+			ctx.JSON(http.StatusOK, gin.H{
+				"data": nil,
+				"error": recErr,
+			})
+			return
 		}
-		ctx.JSON(status, gin.H{
-			"data":   nil,
-			"expire": exp,
-			"error":  err,
-			"email":  nil,
-			"status": status,
-		})
-		return
-	}
-
-	recruiter, recErr := controller.GetRecruiterByEmail(h.MongikClient, email, &constants.ROLE_RECRUITER, noCache)
-	if recErr != nil {
 		ctx.JSON(http.StatusOK, gin.H{
-			"data":   nil,
-			"expire": exp,
-			"error":  recErr,
-			"email":  email,
-			"status": 500,
+			"data": recruiter,
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"data":   recruiter,
-		"expire": exp,
-		"error":  nil,
-		"email":  email,
-		"status": 200,
+	// If email is nil or empty, return error/status like TypeScript
+	status := 500
+	if err != nil && len(*err) >= 4 && (*err)[:4] == "auth" {
+		status = 401
+	}
+	ctx.JSON(status, gin.H{
+		"error":  err,
+		"status": status,
 	})
 }
 
