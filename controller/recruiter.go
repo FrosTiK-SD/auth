@@ -12,7 +12,12 @@ import (
 func GetRecruiterByEmail(mongikClient *models.Mongik, email *string, role *string, noCache bool) (*model.RecruiterModelPopulated, *string) {
 	var recruiterPopulated model.RecruiterModelPopulated
 	recruiterPopulated, _ = db.AggregateOne[model.RecruiterModelPopulated](mongikClient, constants.DB, constants.COLLECTION_RECRUITER, []bson.M{{
-		"$match": bson.M{"email": email},
+		"$match": bson.M{
+			"email": bson.M{
+				"$regex":   "^" + *email + "$",
+				"$options": "i",
+			},
+		},
 	}, {
 		"$lookup": bson.M{
 			"from":         constants.COLLECTION_GROUP,
