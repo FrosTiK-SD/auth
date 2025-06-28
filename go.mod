@@ -5,7 +5,7 @@ go 1.22
 toolchain go1.22.3
 
 require (
-	github.com/FrosTiK-SD/models v0.5.12
+	github.com/FrosTiK-SD/models v0.5.14
 	github.com/FrosTiK-SD/mongik v0.1.20
 	github.com/allegro/bigcache/v3 v3.1.0
 	github.com/gin-gonic/gin v1.10.0
