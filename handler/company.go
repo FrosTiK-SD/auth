@@ -4,13 +4,13 @@ import (
 	"net/http"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	db "github.com/FrosTiK-SD/mongik/db"
-	"github.com/FrosTiK-SD/auth/model"
 	"github.com/FrosTiK-SD/auth/constants"
 	"github.com/FrosTiK-SD/auth/controller"
+	"github.com/FrosTiK-SD/auth/model"
 	"github.com/FrosTiK-SD/auth/util"
+	db "github.com/FrosTiK-SD/mongik/db"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func (h *Handler) GetAllCompanies(ctx *gin.Context) {
@@ -60,26 +60,13 @@ func (h *Handler) CreateRecruiterAndCompany(ctx *gin.Context) {
 
 	now := time.Now()
 
-	// Add timestamps to company struct (you can keep using the struct)
-	req.Company.ID = primitive.NewObjectID() // optional, ensures clean _id
-	companyDoc := req.Company
-	companyMap := map[string]interface{}{
-		"_id":                  companyDoc.ID,
-		"name":                 companyDoc.Name,
-		"logo":                 companyDoc.LogoURLs,
-		"website":              companyDoc.Website,
-		"address":              companyDoc.Address,
-		"category":             companyDoc.Category,
-		"sector":               companyDoc.Sector,
-		"companyTurnover":      companyDoc.CompanyTurnover,
-		"yearOfEstablishment":  companyDoc.YearOfEstablishment,
-		"numberOfEmployees":    companyDoc.NumberOfEmployees,
-		"createdAt":            now,
-		"updatedAt":            now,
-	}
+	// Set fields on the struct directly
+	req.Company.ID = primitive.NewObjectID()
+	req.Company.CreatedAt = primitive.NewDateTimeFromTime(now)
+	req.Company.UpdatedAt = primitive.NewDateTimeFromTime(now)
 
-	// Insert company into DB
-	companyResult, err := db.InsertOne(h.MongikClient, constants.DB, constants.COLLECTION_COMPANY, companyMap)
+	// Insert company struct directly
+	companyResult, err := db.InsertOne(h.MongikClient, constants.DB, constants.COLLECTION_COMPANY, req.Company)
 	if err != nil {
 		ctx.AbortWithStatusJSON(500, gin.H{"error": err.Error()})
 		return
