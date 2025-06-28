@@ -3,7 +3,6 @@ package controller
 import (
 	"github.com/FrosTiK-SD/auth/constants"
 	"github.com/FrosTiK-SD/auth/model"
-	"github.com/FrosTiK-SD/auth/util"
 	db "github.com/FrosTiK-SD/mongik/db"
 	models "github.com/FrosTiK-SD/mongik/models"
 	"go.mongodb.org/mongo-driver/bson"
@@ -27,9 +26,9 @@ func GetRecruiterByEmail(mongikClient *models.Mongik, email *string, role *strin
 		},
 	}}, noCache)
 
-	if !util.CheckRoleExists(&recruiterPopulated.GroupDetails, *role) {
-		return nil, &constants.ERROR_NOT_A_RECRUITER
-	}
+	// if !util.CheckRoleExists(&recruiterPopulated.GroupDetails, *role) {
+	// 	return nil, &constants.ERROR_NOT_A_RECRUITER
+	// }
 
 	return &recruiterPopulated, nil
 }
