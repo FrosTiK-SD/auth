@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/FrosTiK-SD/auth/constants"
 	"github.com/FrosTiK-SD/auth/controller"
@@ -48,19 +47,6 @@ func (h *Handler) HandlerVerifyStudentIdToken(ctx *gin.Context) {
 }
 
 func (h *Handler) HandlerVerifyRecruiterIdToken(ctx *gin.Context) {
-
-	handleError := func(err *string, exp *time.Time) {
-		// TODO consider implementing a middle for it
-		// if h.Config.Mode == MIDDLEWARE {
-		// 	h.Session.Error = errors.New(*err)
-		// }
-		ctx.JSON(http.StatusOK, gin.H{
-			"data":   nil,
-			"expire": exp,
-			"error":  err,
-		})
-	}
-
 	idToken := ctx.GetHeader("token")
 	noCache := false
 	if ctx.GetHeader("cache-control") == constants.NO_CACHE {
@@ -69,14 +55,29 @@ func (h *Handler) HandlerVerifyRecruiterIdToken(ctx *gin.Context) {
 	email, exp, err := controller.VerifyToken(h.MongikClient.CacheClient, idToken, h.JwkSet, noCache)
 	fmt.Println("Email ", *email)
 	if err != nil {
-		handleError(err, exp)
+		status := 500
+		if err != nil && len(*err) >= 4 && (*err)[:4] == "auth" {
+			status = 401
+		}
+		ctx.JSON(status, gin.H{
+			"data":   nil,
+			"expire": exp,
+			"error":  err,
+			"email":  nil,
+			"status": status,
+		})
 		return
 	}
 
-	recruiter, err := controller.GetRecruiterByEmail(h.MongikClient, email, &constants.ROLE_RECRUITER, noCache)
-
-	if err != nil {
-		handleError(err, exp)
+	recruiter, recErr := controller.GetRecruiterByEmail(h.MongikClient, email, &constants.ROLE_RECRUITER, noCache)
+	if recErr != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"data":   nil,
+			"expire": exp,
+			"error":  recErr,
+			"email":  email,
+			"status": 500,
+		})
 		return
 	}
 
@@ -84,6 +85,8 @@ func (h *Handler) HandlerVerifyRecruiterIdToken(ctx *gin.Context) {
 		"data":   recruiter,
 		"expire": exp,
 		"error":  nil,
+		"email":  email,
+		"status": 200,
 	})
 }
 
