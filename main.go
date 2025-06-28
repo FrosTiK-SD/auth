@@ -91,6 +91,12 @@ func main() {
 		companies.GET("/all", handler.GetRoleCheckHandlerForStudent(constants.ROLE_COMPANY_ALL_READ), handler.GetAllCompanies)
 	}
 
+
+	register := r.Group("/api/register")
+	{
+		register.POST("/recruiterAndCompany", handler.CreateRecruiterAndCompany)
+	}
+
 	port := "" + os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
