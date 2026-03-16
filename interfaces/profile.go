@@ -93,6 +93,7 @@ type ProfilePastAcademics struct {
 	Postgraduate  ProfilePastEducation `json:"postgraduate,omitempty"`
 	JeeRank       GenericRank          `json:"jeeRank,omitempty"`
 	GateRank      GenericRank          `json:"gateRank,omitempty"`
+	Diploma		  ProfilePastEducation `json:"diploma,omitempty"`
 }
 
 type ProfileCurrentAcademicsMisc struct {

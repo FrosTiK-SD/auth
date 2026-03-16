@@ -273,6 +273,7 @@ func MapPastAcademics(profile *interfaces.ProfilePastAcademics, institute *stude
 	AssignPastAcademics(&profile.ClassXII, &institute.XIIthClass, forward)
 	AssignPastAcademics(&profile.Undergraduate, &institute.UnderGraduate, forward)
 	AssignPastAcademics(&profile.Postgraduate, &institute.PostGraduate, forward)
+	AssignPastAcademics(&profile.Diploma, &institute.Diploma, forward)
 }
 
 func MapRanks(profile *interfaces.ProfilePastAcademics, rank *studentModel.Academics, forward bool) {
