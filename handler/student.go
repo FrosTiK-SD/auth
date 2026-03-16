@@ -184,6 +184,62 @@ func (h *Handler) HandlerRegisterStudentDetails(ctx *gin.Context) {
 	}
 }
 
+func (h *Handler) HandlerGetStudentProfileById(ctx *gin.Context) {
+	noCache := util.GetNoCache(ctx)
+	studentId, err := primitive.ObjectIDFromHex(ctx.GetHeader("id"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid student ID"})
+		return
+	}
+
+	student, err := controller.GetStudentById(h.MongikClient, studentId, noCache)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Student not found"})
+		return
+	}
+
+	studentProfile := interfaces.StudentProfile{}
+	controller.MapStudentToStudentProfile(&studentProfile, &student.Student, true)
+
+	ctx.JSON(200, gin.H{
+		"profile":             studentProfile,
+		"isAcademicsVerified": student.Academics.Verification.IsVerified,
+		"student": gin.H{
+			"_id":        student.Id,
+			"firstName":  student.FirstName,
+			"middleName": student.MiddleName,
+			"lastName":   student.LastName,
+			"email":      student.InstituteEmail,
+			"rollNo":     student.RollNo,
+			"department":  student.Department,
+		},
+	})
+}
+
+func (h *Handler) HandlerVerifyStudentProfile(ctx *gin.Context) {
+	studentId, err := primitive.ObjectIDFromHex(ctx.GetHeader("id"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid student ID"})
+		return
+	}
+
+	// Get the admin who is verifying
+	admin, exists := ctx.Get(constants.SESSION)
+	if !exists {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	adminStudent := admin.(*model.StudentPopulated)
+
+	student, err := controller.VerifyStudentProfile(h.MongikClient, studentId, adminStudent.Id)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(200, gin.H{"message": "Profile verified successfully", "student": student})
+}
+
 func (h *Handler) HandlerGetStudentProfile(ctx *gin.Context) {
 	student, exists := ctx.Get(constants.SESSION)
 	if !exists {
