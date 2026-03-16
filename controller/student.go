@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"sort"
 	"strings"
 	"time"
@@ -77,6 +78,56 @@ func SetVerificationToNotVerified(verification *misc.Verification) {
 	verification.IsVerified = false
 	verification.VerifiedBy = primitive.NilObjectID
 	verification.VerifiedAt = 0
+}
+
+func SetVerificationToVerified(verification *misc.Verification, verifiedBy primitive.ObjectID) {
+	verification.IsVerified = true
+	verification.VerifiedBy = verifiedBy
+	verification.VerifiedAt = primitive.NewDateTimeFromTime(time.Now())
+}
+
+func VerifyStudentProfile(mongikClient *models.Mongik, studentId primitive.ObjectID, verifiedBy primitive.ObjectID) (*studentModel.Student, error) {
+	studentCollection := mongikClient.MongoClient.Database(constants.DB).Collection(constants.COLLECTION_STUDENT)
+
+	var student studentModel.Student
+	filter := bson.M{"_id": studentId}
+	if err := studentCollection.FindOne(context.Background(), filter).Decode(&student); err != nil {
+		return nil, err
+	}
+
+	// Verify academics
+	SetVerificationToVerified(&student.Academics.Verification, verifiedBy)
+
+	// Verify social profiles
+	verifySocialProfile := func(sp *studentModel.SocialProfile) {
+		if sp != nil {
+			SetVerificationToVerified(&sp.Verification, verifiedBy)
+		}
+	}
+	verifySocialProfile(student.SocialProfiles.LinkedIn)
+	verifySocialProfile(student.SocialProfiles.Github)
+	verifySocialProfile(student.SocialProfiles.MicrosoftTeams)
+	verifySocialProfile(student.SocialProfiles.Skype)
+	verifySocialProfile(student.SocialProfiles.GoogleScholar)
+	verifySocialProfile(student.SocialProfiles.Codeforces)
+	verifySocialProfile(student.SocialProfiles.CodeChef)
+	verifySocialProfile(student.SocialProfiles.LeetCode)
+	verifySocialProfile(student.SocialProfiles.Kaggle)
+
+	// Verify work experience
+	for i := range student.WorkExperience {
+		SetVerificationToVerified(&student.WorkExperience[i].Verification, verifiedBy)
+	}
+
+	// Verify extras
+	SetVerificationToVerified(&student.Extras.Verification, verifiedBy)
+
+	// Save
+	if _, err := studentCollection.ReplaceOne(context.Background(), filter, &student); err != nil {
+		return nil, err
+	}
+
+	return &student, nil
 }
 
 func CheckSocialProfile(updatedSocialProfile *studentModel.SocialProfile, currentSocialProfile *studentModel.SocialProfile) {
