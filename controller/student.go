@@ -223,65 +223,6 @@ func GetStudentById(mongikClient *models.Mongik, _id primitive.ObjectID, noCache
 	return &student, err
 }
 
-func GetStudentDirectory(mongikClient *models.Mongik, currentStudent *model.StudentPopulated, batch string, department string, course string, fields string, noCache bool) (*[]model.StudentPopulated, error) {
-	matchFilter := bson.M{}
-
-	if batch != "" {
-		matchFilter["batch"] = bson.M{
-			"startYear": currentStudent.Batch.StartYear,
-			"endYear":   currentStudent.Batch.EndYear,
-		}
-	} else {
-		matchFilter["batch"] = bson.M{
-			"startYear": currentStudent.Batch.StartYear,
-			"endYear":   currentStudent.Batch.EndYear,
-		}
-	}
-
-	if department != "" {
-		matchFilter["department"] = department
-	} else {
-		matchFilter["department"] = currentStudent.Department
-	}
-
-	if course != "" {
-		matchFilter["course"] = course
-	}
-
-	pipeline := []bson.M{
-		{
-			"$match": matchFilter,
-		},
-	}
-
-	if fields == "basic" {
-		pipeline = append(pipeline, bson.M{
-			"$project": bson.M{
-				"firstName": 1,
-				"lastName":  1,
-				"rollNo":    1,
-			},
-		})
-	} else {
-		pipeline = append(pipeline, bson.M{
-			"$lookup": bson.M{
-				"from":         constants.COLLECTION_GROUP,
-				"localField":   "groups",
-				"foreignField": "_id",
-				"as":           "groups",
-			},
-		})
-	}
-
-	pipeline = append(pipeline, bson.M{
-		"$limit": 500,
-	})
-
-	students, err := db.Aggregate[model.StudentPopulated](mongikClient, constants.DB, constants.COLLECTION_STUDENT, pipeline, noCache)
-
-	return &students, err
-}
-
 func GetAllStudentsOfRole(mongikClient *models.Mongik, role string, noCache bool) (*[]model.StudentPopulated, error) {
 	roleStudents, err := db.Aggregate[model.StudentPopulated](mongikClient, constants.DB, constants.COLLECTION_STUDENT, []bson.M{
 		{
