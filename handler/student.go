@@ -45,40 +45,6 @@ func (h *Handler) GetAllStudents(ctx *gin.Context) {
 		})
 }
 
-func (h *Handler) GetStudentDirectory(ctx *gin.Context) {
-	noCache := util.GetNoCache(ctx)
-
-	value, exists := ctx.Get(constants.SESSION)
-	if !exists {
-		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-			"error": "Cannot get student",
-		})
-		return
-	}
-
-	currentStudent := value.(*model.StudentPopulated)
-
-	batch := ctx.Query("batch")
-	department := ctx.Query("department")
-	course := ctx.Query("course")
-	fields := ctx.Query("fields")
-
-	students, err := controller.GetStudentDirectory(h.MongikClient, currentStudent, batch, department, course, fields, noCache)
-
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"data":  nil,
-			"error": err.Error(),
-		})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{
-		"data":  students,
-		"error": nil,
-	})
-}
-
 func (h *Handler) GetStudentById(ctx *gin.Context) {
 	noCache := util.GetNoCache(ctx)
 	_id, err := primitive.ObjectIDFromHex(ctx.GetHeader("id"))
