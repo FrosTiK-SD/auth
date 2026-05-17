@@ -36,7 +36,7 @@ func (h *Handler) GinVerifyStudent(ctx *gin.Context) {
 }
 
 // To be Used only after GinVerifyStudent
-func (h *Handler) GetRoleCheckHandlerForStudent(roles ...string) func(ctx *gin.Context) {
+func (h *Handler) GinGetRoleCheckHandlerForStudent(roles ...string) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		value, exists := ctx.Get(constants.SESSION)
 		student, ok := value.(*model.StudentPopulated)
