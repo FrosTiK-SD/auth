@@ -69,6 +69,7 @@ func main() {
 		student.GET("/profile/id", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_STUDENT_VERIFY), handler.HandlerGetStudentProfileById)
 		student.PUT("/profile/verify", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_STUDENT_VERIFY), handler.HandlerVerifyStudentProfile)
 		student.POST("/register", handler.HandlerRegisterStudentDetails)
+		student.PUT("/admin/update", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_ADMIN), handler.HandlerAdminUpdateStudentDetails)
 	}
 
 	group := r.Group("/api/group", handler.GinVerifyStudent)
@@ -93,7 +94,6 @@ func main() {
 	{
 		companies.GET("/all", handler.GetRoleCheckHandlerForStudent(constants.ROLE_COMPANY_ALL_READ), handler.GetAllCompanies)
 	}
-
 
 	register := r.Group("/api/register")
 	{
