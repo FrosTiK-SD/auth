@@ -248,7 +248,7 @@ func (h *Handler) HandlerGetStudentProfileById(ctx *gin.Context) {
 			"lastName":   student.LastName,
 			"email":      student.InstituteEmail,
 			"rollNo":     student.RollNo,
-			"department":  student.Department,
+			"department": student.Department,
 		},
 	})
 }
@@ -324,4 +324,38 @@ func (h *Handler) HandlerUpdateStudentProfile(ctx *gin.Context) {
 	}
 
 	ctx.JSON(200, gin.H{"student": currentStudent})
+}
+
+func (h *Handler) HandlerAdminUpdateStudentDetails(ctx *gin.Context) {
+	studentId, err := primitive.ObjectIDFromHex(ctx.GetHeader("id"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid student ID"})
+		return
+	}
+
+	var studentProfile interfaces.StudentProfile
+	if errBinding := ctx.ShouldBindJSON(&studentProfile); errBinding != nil {
+		ctx.AbortWithStatusJSON(400, gin.H{"error": errBinding.Error()})
+		return
+	}
+
+	studentCollection := h.MongikClient.MongoClient.Database(constants.DB).Collection(constants.COLLECTION_STUDENT)
+	filter := bson.M{"_id": studentId}
+
+	var currentStudent studentModel.Student
+	if errFind := studentCollection.FindOne(ctx, filter).Decode(&currentStudent); errFind != nil {
+		ctx.AbortWithStatusJSON(404, gin.H{"error": "Student not found"})
+		return
+	}
+
+	// Admin update: map the provided profile directly onto the current student without restrictions
+	controller.MapStudentToStudentProfile(&studentProfile, &currentStudent, false)
+	currentStudent.UpdatedAt = primitive.NewDateTimeFromTime(time.Now().UTC())
+
+	if updateResult, errUpdate := db.ReplaceOne(h.MongikClient, constants.DB, constants.COLLECTION_STUDENT, filter, &currentStudent); errUpdate != nil {
+		ctx.AbortWithStatusJSON(400, gin.H{"error": errUpdate.Error()})
+		return
+	} else {
+		ctx.JSON(200, gin.H{"student": updateResult})
+	}
 }
