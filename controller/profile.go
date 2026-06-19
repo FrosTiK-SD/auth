@@ -79,7 +79,7 @@ func AssignSocialProfile(profile *interfaces.SocialProfile, social **studentMode
 
 	// backward mapping
 
-	if profile.URL.IsNull || profile.Username.IsNull {
+	if profile.URL.IsNull && profile.Username.IsNull {
 		return
 	}
 
@@ -140,7 +140,7 @@ func AssignPastAcademics(field *interfaces.ProfilePastEducation, education **stu
 
 	// backward
 
-	if field.Certification.IsNull || field.Institute.IsNull {
+	if field.Certification.IsNull && field.Institute.IsNull && field.Year.IsNull && field.Score.IsNull {
 		return
 	}
 

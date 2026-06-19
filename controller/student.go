@@ -130,16 +130,24 @@ func VerifyStudentProfile(mongikClient *models.Mongik, studentId primitive.Objec
 	return &student, nil
 }
 
-func CheckSocialProfile(updatedSocialProfile *studentModel.SocialProfile, currentSocialProfile *studentModel.SocialProfile) {
+func CheckSocialProfile(updatedSocialProfile *studentModel.SocialProfile, currentSocialProfile **studentModel.SocialProfile) {
 	if updatedSocialProfile == nil {
-		currentSocialProfile = nil
+		*currentSocialProfile = nil
 		return
 	}
 
-	if updatedSocialProfile.URL != currentSocialProfile.URL || updatedSocialProfile.Username != currentSocialProfile.Username {
-		currentSocialProfile.URL = updatedSocialProfile.URL
-		currentSocialProfile.Username = updatedSocialProfile.Username
-		SetVerificationToNotVerified(&currentSocialProfile.Verification)
+	if *currentSocialProfile == nil {
+		*currentSocialProfile = new(studentModel.SocialProfile)
+		(*currentSocialProfile).URL = updatedSocialProfile.URL
+		(*currentSocialProfile).Username = updatedSocialProfile.Username
+		SetVerificationToNotVerified(&(*currentSocialProfile).Verification)
+		return
+	}
+
+	if updatedSocialProfile.URL != (*currentSocialProfile).URL || updatedSocialProfile.Username != (*currentSocialProfile).Username {
+		(*currentSocialProfile).URL = updatedSocialProfile.URL
+		(*currentSocialProfile).Username = updatedSocialProfile.Username
+		SetVerificationToNotVerified(&(*currentSocialProfile).Verification)
 	}
 }
 
@@ -151,15 +159,15 @@ func InvalidateVerifiedFieldsOnChange(updated *studentModel.Student, current *st
 	}
 
 	// invalidate social profiles
-	CheckSocialProfile(updated.SocialProfiles.LinkedIn, current.SocialProfiles.LinkedIn)
-	CheckSocialProfile(updated.SocialProfiles.Github, current.SocialProfiles.Github)
-	CheckSocialProfile(updated.SocialProfiles.MicrosoftTeams, current.SocialProfiles.MicrosoftTeams)
-	CheckSocialProfile(updated.SocialProfiles.Skype, current.SocialProfiles.Skype)
-	CheckSocialProfile(updated.SocialProfiles.GoogleScholar, current.SocialProfiles.GoogleScholar)
-	CheckSocialProfile(updated.SocialProfiles.Codeforces, current.SocialProfiles.Codeforces)
-	CheckSocialProfile(updated.SocialProfiles.CodeChef, current.SocialProfiles.CodeChef)
-	CheckSocialProfile(updated.SocialProfiles.LeetCode, current.SocialProfiles.LeetCode)
-	CheckSocialProfile(updated.SocialProfiles.Kaggle, current.SocialProfiles.Kaggle)
+	CheckSocialProfile(updated.SocialProfiles.LinkedIn, &current.SocialProfiles.LinkedIn)
+	CheckSocialProfile(updated.SocialProfiles.Github, &current.SocialProfiles.Github)
+	CheckSocialProfile(updated.SocialProfiles.MicrosoftTeams, &current.SocialProfiles.MicrosoftTeams)
+	CheckSocialProfile(updated.SocialProfiles.Skype, &current.SocialProfiles.Skype)
+	CheckSocialProfile(updated.SocialProfiles.GoogleScholar, &current.SocialProfiles.GoogleScholar)
+	CheckSocialProfile(updated.SocialProfiles.Codeforces, &current.SocialProfiles.Codeforces)
+	CheckSocialProfile(updated.SocialProfiles.CodeChef, &current.SocialProfiles.CodeChef)
+	CheckSocialProfile(updated.SocialProfiles.LeetCode, &current.SocialProfiles.LeetCode)
+	CheckSocialProfile(updated.SocialProfiles.Kaggle, &current.SocialProfiles.Kaggle)
 
 	var newWorkExperienceArray []studentModel.WorkExperience
 
