@@ -66,7 +66,7 @@ func main() {
 
 		student.GET("/profile", handler.GinVerifyStudent, handler.HandlerGetStudentProfile)
 		student.PUT("/profile", handler.GinVerifyStudent, handler.HandlerUpdateStudentProfile)
-		student.GET("/profile/id", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_STUDENT_VERIFY), handler.HandlerGetStudentProfileById)
+		student.GET("/profile/id", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_STUDENT_VERIFY, constants.ROLE_ADMIN), handler.HandlerGetStudentProfileById)
 		student.PUT("/profile/verify", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_STUDENT_VERIFY), handler.HandlerVerifyStudentProfile)
 		student.POST("/register", handler.HandlerRegisterStudentDetails)
 		student.PUT("/admin/update", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_ADMIN), handler.HandlerAdminUpdateStudentDetails)
