@@ -68,6 +68,12 @@ func main() {
 		student.PUT("/profile", handler.GinVerifyStudent, handler.HandlerUpdateStudentProfile)
 		student.GET("/profile/id", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_STUDENT_VERIFY), handler.HandlerGetStudentProfileById)
 		student.PUT("/profile/verify", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_STUDENT_VERIFY), handler.HandlerVerifyStudentProfile)
+		student.PUT("/profile/unverify", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_STUDENT_VERIFY), handler.HandlerUnverifyStudentProfile)
+		
+		student.GET("/tpr/profile/id", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_TPR), handler.HandlerTprGetStudentProfileById)
+		student.PUT("/tpr/profile/verify", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_TPR), handler.HandlerTprVerifyStudentProfile)
+		student.PUT("/tpr/profile/unverify", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_TPR), handler.HandlerTprUnverifyStudentProfile)
+		
 		student.POST("/register", handler.HandlerRegisterStudentDetails)
 		student.GET("/admin/profile/id", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_ADMIN), handler.HandlerGetStudentProfileById)
 		student.PUT("/admin/update", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_ADMIN), handler.HandlerAdminUpdateStudentDetails)

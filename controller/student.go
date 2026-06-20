@@ -130,6 +130,50 @@ func VerifyStudentProfile(mongikClient *models.Mongik, studentId primitive.Objec
 	return &student, nil
 }
 
+func UnverifyStudentProfile(mongikClient *models.Mongik, studentId primitive.ObjectID, unverifiedBy primitive.ObjectID) (*studentModel.Student, error) {
+	studentCollection := mongikClient.MongoClient.Database(constants.DB).Collection(constants.COLLECTION_STUDENT)
+
+	var student studentModel.Student
+	filter := bson.M{"_id": studentId}
+	if err := studentCollection.FindOne(context.Background(), filter).Decode(&student); err != nil {
+		return nil, err
+	}
+
+	// Unverify academics
+	SetVerificationToNotVerified(&student.Academics.Verification)
+
+	// Unverify social profiles
+	unverifySocialProfile := func(sp *studentModel.SocialProfile) {
+		if sp != nil {
+			SetVerificationToNotVerified(&sp.Verification)
+		}
+	}
+	unverifySocialProfile(student.SocialProfiles.LinkedIn)
+	unverifySocialProfile(student.SocialProfiles.Github)
+	unverifySocialProfile(student.SocialProfiles.MicrosoftTeams)
+	unverifySocialProfile(student.SocialProfiles.Skype)
+	unverifySocialProfile(student.SocialProfiles.GoogleScholar)
+	unverifySocialProfile(student.SocialProfiles.Codeforces)
+	unverifySocialProfile(student.SocialProfiles.CodeChef)
+	unverifySocialProfile(student.SocialProfiles.LeetCode)
+	unverifySocialProfile(student.SocialProfiles.Kaggle)
+
+	// Unverify work experience
+	for i := range student.WorkExperience {
+		SetVerificationToNotVerified(&student.WorkExperience[i].Verification)
+	}
+
+	// Unverify extras
+	SetVerificationToNotVerified(&student.Extras.Verification)
+
+	// Save
+	if _, err := studentCollection.ReplaceOne(context.Background(), filter, &student); err != nil {
+		return nil, err
+	}
+
+	return &student, nil
+}
+
 func CheckSocialProfile(updatedSocialProfile *studentModel.SocialProfile, currentSocialProfile **studentModel.SocialProfile) {
 	if updatedSocialProfile == nil {
 		*currentSocialProfile = nil
