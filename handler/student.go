@@ -277,6 +277,148 @@ func (h *Handler) HandlerVerifyStudentProfile(ctx *gin.Context) {
 	ctx.JSON(200, gin.H{"message": "Profile verified successfully", "student": student})
 }
 
+func (h *Handler) HandlerUnverifyStudentProfile(ctx *gin.Context) {
+	studentId, err := primitive.ObjectIDFromHex(ctx.GetHeader("id"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid student ID"})
+		return
+	}
+
+	// Get the admin who is unverifying
+	admin, exists := ctx.Get(constants.SESSION)
+	if !exists {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	adminStudent := admin.(*model.StudentPopulated)
+
+	student, err := controller.UnverifyStudentProfile(h.MongikClient, studentId, adminStudent.Id)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(200, gin.H{"message": "Profile unverified successfully", "student": student})
+}
+
+func (h *Handler) HandlerTprGetStudentProfileById(ctx *gin.Context) {
+	noCache := util.GetNoCache(ctx)
+	studentId, err := primitive.ObjectIDFromHex(ctx.GetHeader("id"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid student ID"})
+		return
+	}
+
+	// Get the TPR
+	tprSession, exists := ctx.Get(constants.SESSION)
+	if !exists {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	tprStudent := tprSession.(*model.StudentPopulated)
+
+	student, err := controller.GetStudentById(h.MongikClient, studentId, noCache)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Student not found"})
+		return
+	}
+
+	if student.Department != tprStudent.Department {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Not authorized for this student's department"})
+		return
+	}
+
+	studentProfile := interfaces.StudentProfile{}
+	controller.MapStudentToStudentProfile(&studentProfile, &student.Student, true)
+
+	ctx.JSON(200, gin.H{
+		"profile":             studentProfile,
+		"isAcademicsVerified": student.Academics.Verification.IsVerified,
+		"isProfileVerified":   student.Extras.Verification.IsVerified,
+		"student": gin.H{
+			"_id":        student.Id,
+			"firstName":  student.FirstName,
+			"middleName": student.MiddleName,
+			"lastName":   student.LastName,
+			"email":      student.InstituteEmail,
+			"rollNo":     student.RollNo,
+			"department": student.Department,
+		},
+	})
+}
+
+func (h *Handler) HandlerTprVerifyStudentProfile(ctx *gin.Context) {
+	studentId, err := primitive.ObjectIDFromHex(ctx.GetHeader("id"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid student ID"})
+		return
+	}
+
+	// Get the TPR who is verifying
+	tprSession, exists := ctx.Get(constants.SESSION)
+	if !exists {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	tprStudent := tprSession.(*model.StudentPopulated)
+
+	// Fetch student to check department
+	studentCheck, err := controller.GetStudentById(h.MongikClient, studentId, true)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Student not found"})
+		return
+	}
+
+	if studentCheck.Department != tprStudent.Department {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Not authorized for this student's department"})
+		return
+	}
+
+	student, err := controller.VerifyStudentProfile(h.MongikClient, studentId, tprStudent.Id)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(200, gin.H{"message": "Profile verified successfully", "student": student})
+}
+
+func (h *Handler) HandlerTprUnverifyStudentProfile(ctx *gin.Context) {
+	studentId, err := primitive.ObjectIDFromHex(ctx.GetHeader("id"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid student ID"})
+		return
+	}
+
+	// Get the TPR who is unverifying
+	tprSession, exists := ctx.Get(constants.SESSION)
+	if !exists {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	tprStudent := tprSession.(*model.StudentPopulated)
+
+	// Fetch student to check department
+	studentCheck, err := controller.GetStudentById(h.MongikClient, studentId, true)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Student not found"})
+		return
+	}
+
+	if studentCheck.Department != tprStudent.Department {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Not authorized for this student's department"})
+		return
+	}
+
+	student, err := controller.UnverifyStudentProfile(h.MongikClient, studentId, tprStudent.Id)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(200, gin.H{"message": "Profile unverified successfully", "student": student})
+}
+
 func (h *Handler) HandlerGetStudentProfile(ctx *gin.Context) {
 	student, exists := ctx.Get(constants.SESSION)
 	if !exists {
