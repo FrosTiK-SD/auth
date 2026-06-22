@@ -359,3 +359,32 @@ func (h *Handler) HandlerAdminUpdateStudentDetails(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{"student": updateResult})
 	}
 }
+
+func (h *Handler) HandlerUnverifyStudentProfilesByBatch(ctx *gin.Context) {
+	var req interfaces.UnverifyBatchRequest
+	if errBinding := ctx.ShouldBindJSON(&req); errBinding != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": errBinding.Error()})
+		return
+	}
+
+	if req.StartYear == 0 || req.EndYear == 0 || req.EndYear < req.StartYear {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid batch years"})
+		return
+	}
+
+	updatedCount, errs := controller.UnverifyStudentProfilesByBatch(h.MongikClient, req.StartYear, req.EndYear)
+
+	if len(errs) > 0 {
+		ctx.JSON(http.StatusPartialContent, gin.H{
+			"message":      "Batch unverify completed with errors",
+			"updatedCount": updatedCount,
+			"errors":       errs,
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message":      "Successfully unverified all profiles in batch",
+		"updatedCount": updatedCount,
+	})
+}

@@ -23,3 +23,8 @@ type StudentRegistration struct {
 
 	RawKeyStore map[string]interface{} `json:"raw_key_store" bson:"raw_key_store"`
 }
+
+type UnverifyBatchRequest struct {
+	StartYear int `json:"startYear" bson:"startYear" binding:"required"`
+	EndYear   int `json:"endYear" bson:"endYear" binding:"required"`
+}

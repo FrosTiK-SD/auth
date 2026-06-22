@@ -71,6 +71,7 @@ func main() {
 		student.POST("/register", handler.HandlerRegisterStudentDetails)
 		student.GET("/admin/profile/id", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_ADMIN), handler.HandlerGetStudentProfileById)
 		student.PUT("/admin/update", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_ADMIN), handler.HandlerAdminUpdateStudentDetails)
+		student.PUT("/admin/unverify-batch", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_ADMIN), handler.HandlerUnverifyStudentProfilesByBatch)
 	}
 
 	group := r.Group("/api/group", handler.GinVerifyStudent)

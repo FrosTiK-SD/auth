@@ -130,6 +130,69 @@ func VerifyStudentProfile(mongikClient *models.Mongik, studentId primitive.Objec
 	return &student, nil
 }
 
+func UnverifyStudentProfilesByBatch(mongikClient *models.Mongik, startYear int, endYear int) (int, []error) {
+	studentCollection := mongikClient.MongoClient.Database(constants.DB).Collection(constants.COLLECTION_STUDENT)
+
+	filter := bson.M{
+		"batch.startYear": startYear,
+		"batch.endYear":   endYear,
+	}
+
+	cursor, err := studentCollection.Find(context.Background(), filter)
+	if err != nil {
+		return 0, []error{err}
+	}
+	defer cursor.Close(context.Background())
+
+	var errors []error
+	updatedCount := 0
+
+	for cursor.Next(context.Background()) {
+		var student studentModel.Student
+		if err := cursor.Decode(&student); err != nil {
+			errors = append(errors, err)
+			continue
+		}
+
+		SetVerificationToNotVerified(&student.Academics.Verification)
+
+		unverifySocialProfile := func(sp *studentModel.SocialProfile) {
+			if sp != nil {
+				SetVerificationToNotVerified(&sp.Verification)
+			}
+		}
+		unverifySocialProfile(student.SocialProfiles.LinkedIn)
+		unverifySocialProfile(student.SocialProfiles.Github)
+		unverifySocialProfile(student.SocialProfiles.MicrosoftTeams)
+		unverifySocialProfile(student.SocialProfiles.Skype)
+		unverifySocialProfile(student.SocialProfiles.GoogleScholar)
+		unverifySocialProfile(student.SocialProfiles.Codeforces)
+		unverifySocialProfile(student.SocialProfiles.CodeChef)
+		unverifySocialProfile(student.SocialProfiles.LeetCode)
+		unverifySocialProfile(student.SocialProfiles.Kaggle)
+
+		for i := range student.WorkExperience {
+			SetVerificationToNotVerified(&student.WorkExperience[i].Verification)
+		}
+
+		SetVerificationToNotVerified(&student.Extras.Verification)
+		student.UpdatedAt = primitive.NewDateTimeFromTime(time.Now().UTC())
+
+		_, updateErr := studentCollection.ReplaceOne(
+			context.Background(),
+			bson.M{"_id": student.Id},
+			&student,
+		)
+		if updateErr != nil {
+			errors = append(errors, updateErr)
+			continue
+		}
+		updatedCount++
+	}
+
+	return updatedCount, errors
+}
+
 func CheckSocialProfile(updatedSocialProfile *studentModel.SocialProfile, currentSocialProfile **studentModel.SocialProfile) {
 	if updatedSocialProfile == nil {
 		*currentSocialProfile = nil
