@@ -170,6 +170,7 @@ func (h *Handler) HandlerUpdateStudentDetails(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(400, gin.H{"error": errUpdate.Error()})
 		return
 	} else {
+		controller.InvalidateStudentCache(h.MongikClient, currentStudent.InstituteEmail)
 		ctx.JSON(200, gin.H{"student": updateResult})
 	}
 }
@@ -320,6 +321,7 @@ func (h *Handler) HandlerUpdateStudentProfile(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(400, gin.H{"error": errUpdate.Error()})
 		return
 	} else {
+		controller.InvalidateStudentCache(h.MongikClient, currentStudent.InstituteEmail)
 		ctx.JSON(200, gin.H{"student": updateResult})
 	}
 
@@ -356,6 +358,7 @@ func (h *Handler) HandlerAdminUpdateStudentDetails(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(400, gin.H{"error": errUpdate.Error()})
 		return
 	} else {
+		controller.InvalidateStudentCache(h.MongikClient, currentStudent.InstituteEmail)
 		ctx.JSON(200, gin.H{"student": updateResult})
 	}
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/FrosTiK-SD/auth/constants"
 	"github.com/FrosTiK-SD/auth/controller"
@@ -20,13 +21,25 @@ func main() {
 	godotenv.Load()
 	r := gin.Default()
 
+	mongikClientType := mongikConstants.REDIS
+	if clientType := os.Getenv("MONGIK_CLIENT_TYPE"); clientType != "" {
+		mongikClientType = clientType
+	}
+	redisDBIndex := 0
+	if dbIndexStr := os.Getenv("REDIS_DB_INDEX"); dbIndexStr != "" {
+		if val, err := strconv.Atoi(dbIndexStr); err == nil {
+			redisDBIndex = val
+		}
+	}
+
 	mongikClient := mongik.NewClient(os.Getenv(constants.CONNECTION_STRING), &mongikModels.Config{
-		Client: mongikConstants.REDIS,
+		Client: mongikClientType,
 		TTL:    constants.CACHING_DURATION,
 		RedisConfig: &mongikModels.RedisConfig{
 			URI:      os.Getenv(constants.REDIS_URI),
 			Password: os.Getenv(constants.REDIS_PASSWORD),
 			Username: os.Getenv(constants.REDIS_USERNAME),
+			DBIndex:  redisDBIndex,
 		},
 		FallbackToDefault: true,
 	})

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -123,10 +124,10 @@ func VerifyStudentProfile(mongikClient *models.Mongik, studentId primitive.Objec
 	SetVerificationToVerified(&student.Extras.Verification, verifiedBy)
 
 	// Save
-	if _, err := studentCollection.ReplaceOne(context.Background(), filter, &student); err != nil {
+	if _, err := db.ReplaceOne(mongikClient, constants.DB, constants.COLLECTION_STUDENT, filter, &student); err != nil {
 		return nil, err
 	}
-
+	InvalidateStudentCache(mongikClient, student.InstituteEmail)
 	return &student, nil
 }
 
@@ -187,8 +188,11 @@ func UnverifyStudentProfilesByBatch(mongikClient *models.Mongik, startYear int, 
 			errors = append(errors, updateErr)
 			continue
 		}
+		InvalidateStudentCache(mongikClient, student.InstituteEmail)
 		updatedCount++
 	}
+	// clear cache for the entire batch
+	db.DBCacheReset(mongikClient, constants.COLLECTION_STUDENT)
 
 	return updatedCount, errors
 }
@@ -376,4 +380,17 @@ func GetAllStudentsOfRole(mongikClient *models.Mongik, role string, noCache bool
 		noCache)
 
 	return &roleStudents, err
+}
+
+// delete student profile cache key from Redis/BigCache
+func InvalidateStudentCache(mongikClient *models.Mongik, email string) {
+	emailList := getAliasEmailList(email)
+	key := fmt.Sprintf("students | DB_AGGREGATEONE | [map[$match:map[email:map[$in:%v]]] map[$lookup:map[as:groups foreignField:_id from:groups localField:groups]]] | ", emailList)
+
+	if mongikClient.RedisClient != nil {
+		mongikClient.RedisClient.Del(context.Background(), key)
+	}
+	if mongikClient.CacheClient != nil {
+		mongikClient.CacheClient.Delete(key)
+	}
 }
