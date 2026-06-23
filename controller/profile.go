@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"strconv"
+	"strings"
 
 	"github.com/FrosTiK-SD/auth/constants"
 	"github.com/FrosTiK-SD/auth/interfaces"
@@ -230,11 +231,34 @@ func MapProfileCurrentAcademics(profile *interfaces.ProfileCurrentAcademics, aca
 }
 
 func AssignBatch(profile *interfaces.GenericField[string], institute *studentModel.Student, forward bool) {
-	profile.IsNull = reflect2.IsNil(institute.Batch)
-	profile.DataType = constants.TYPE_STRING
-	if !profile.IsNull {
-		profile.Value = strconv.Itoa(institute.Batch.StartYear) + "-" + strconv.Itoa(institute.Batch.EndYear)
+	if forward {
+		profile.IsNull = reflect2.IsNil(institute.Batch)
+		profile.DataType = constants.TYPE_STRING
+		if !profile.IsNull {
+			profile.Value = strconv.Itoa(institute.Batch.StartYear) + "-" + strconv.Itoa(institute.Batch.EndYear)
+		}
+		return
 	}
+
+	if profile.IsNull || profile.Value == "" {
+		return
+	}
+
+	parts := strings.SplitN(profile.Value, "-", 2)
+	if len(parts) != 2 {
+		return
+	}
+	startYear, errStart := strconv.Atoi(strings.TrimSpace(parts[0]))
+	endYear, errEnd := strconv.Atoi(strings.TrimSpace(parts[1]))
+	if errStart != nil || errEnd != nil {
+		return
+	}
+
+	if institute.Batch == nil {
+		institute.Batch = &studentModel.Batch{}
+	}
+	institute.Batch.StartYear = startYear
+	institute.Batch.EndYear = endYear
 }
 
 func MapSocialProfiles(profile *interfaces.SocialProfiles, socials *studentModel.SocialProfiles, forward bool) {
