@@ -218,6 +218,8 @@ func MapProfileCurrentAcademics(profile *interfaces.ProfileCurrentAcademics, aca
 	AssignNilPossibleValue(&profile.SemesterSPI.Six, &academics.SemesterSPI.Six, forward)
 	AssignNilPossibleValue(&profile.SemesterSPI.Seven, &academics.SemesterSPI.Seven, forward)
 	AssignNilPossibleValue(&profile.SemesterSPI.Eight, &academics.SemesterSPI.Eight, forward)
+	AssignNilPossibleValue(&profile.SemesterSPI.Nine, &academics.SemesterSPI.Nine, forward)
+	AssignNilPossibleValue(&profile.SemesterSPI.Ten, &academics.SemesterSPI.Ten, forward)
 
 	AssignNilPossibleValue(&profile.SummerTermSPI.One, &academics.SummerTermSPI.One, forward)
 	AssignNilPossibleValue(&profile.SummerTermSPI.Two, &academics.SummerTermSPI.Two, forward)
