@@ -71,7 +71,6 @@ func main() {
 	student := r.Group("/api/student")
 	{
 		student.GET("", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_ADMIN), handler.GetAllStudents)
-		student.GET("/directory", handler.GinVerifyStudent, handler.GetStudentDirectory)
 		student.GET("/id", handler.GinVerifyStudent, handler.GetStudentById)
 		student.GET("/tpr/all", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_ADMIN), handler.GetAllTprs)
 		student.GET("/tprLogin", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_TPR), handler.HandlerTprLogin)
