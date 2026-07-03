@@ -112,13 +112,43 @@ func (h *Handler) GetAllStudents(ctx *gin.Context) {
 
 	noCache := util.GetNoCache(ctx)
 
-	students, err := controller.GetAllStudents(h.MongikClient, noCache)
+	startYear, err := strconv.Atoi(ctx.DefaultQuery("startYear", "0"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid startYear"})
+		return
+	}
+
+	endYear, err := strconv.Atoi(ctx.DefaultQuery("endYear", "0"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid endYear"})
+		return
+	}
+
+	limit, err := strconv.Atoi(ctx.DefaultQuery("limit", strconv.Itoa(controller.DefaultStudentSearchLimit)))
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid limit"})
+		return
+	}
+
+	students, err := controller.SearchStudents(h.MongikClient, controller.StudentSearchFilter{
+		Query:      ctx.Query("query"),
+		StartYear:  startYear,
+		EndYear:    endYear,
+		Course:     ctx.Query("course"),
+		Department: ctx.Query("department"),
+		Limit:      limit,
+	}, noCache)
 
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+		status := http.StatusInternalServerError
+		if strings.Contains(err.Error(), "provide at least one student filter") {
+			status = http.StatusBadRequest
+		}
+		ctx.AbortWithStatusJSON(status, gin.H{
 			"data":  nil,
-			"error": err,
+			"error": err.Error(),
 		})
+		return
 	}
 	ctx.JSON(http.StatusOK,
 		gin.H{

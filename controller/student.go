@@ -2,8 +2,11 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,6 +21,18 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+const DefaultStudentSearchLimit int = 100
+const MaxStudentSearchLimit int = 500
+
+type StudentSearchFilter struct {
+	Query      string
+	StartYear  int
+	EndYear    int
+	Course     string
+	Department string
+	Limit      int
+}
 
 func getAliasEmailList(email string) []string {
 	var aliasEmailList []string
@@ -265,7 +280,67 @@ func InvalidateVerifiedFieldsOnChange(updated *studentModel.Student, current *st
 }
 
 func GetAllStudents(mongikClient *models.Mongik, noCache bool) (*[]model.StudentPopulated, error) {
-	students, err := db.Aggregate[model.StudentPopulated](mongikClient, constants.DB, constants.COLLECTION_STUDENT, []bson.M{
+	return SearchStudents(mongikClient, StudentSearchFilter{Limit: MaxStudentSearchLimit}, noCache)
+}
+
+func BuildStudentSearchMatchFilter(filter StudentSearchFilter) (bson.M, bool) {
+	matchFilter := bson.M{}
+	hasFilter := false
+
+	if filter.StartYear != 0 {
+		matchFilter["batch.startYear"] = filter.StartYear
+		hasFilter = true
+	}
+	if filter.EndYear != 0 {
+		matchFilter["batch.endYear"] = filter.EndYear
+		hasFilter = true
+	}
+	if strings.TrimSpace(filter.Course) != "" {
+		matchFilter["course"] = strings.TrimSpace(filter.Course)
+		hasFilter = true
+	}
+	if strings.TrimSpace(filter.Department) != "" {
+		matchFilter["department"] = strings.ToLower(strings.TrimSpace(filter.Department))
+		hasFilter = true
+	}
+
+	query := strings.TrimSpace(filter.Query)
+	if query != "" {
+		hasFilter = true
+		if rollNo, err := strconv.Atoi(query); err == nil {
+			matchFilter["rollNo"] = rollNo
+		} else {
+			nameRegex := primitive.Regex{Pattern: regexp.QuoteMeta(query), Options: "i"}
+			matchFilter["$or"] = []bson.M{
+				{"firstName": nameRegex},
+				{"middleName": nameRegex},
+				{"lastName": nameRegex},
+				{"email": nameRegex},
+			}
+		}
+	}
+
+	return matchFilter, hasFilter
+}
+
+func SearchStudents(mongikClient *models.Mongik, filter StudentSearchFilter, noCache bool) (*[]model.StudentPopulated, error) {
+	matchFilter, hasFilter := BuildStudentSearchMatchFilter(filter)
+	if !hasFilter {
+		return nil, errors.New("provide at least one student filter")
+	}
+
+	limit := filter.Limit
+	if limit <= 0 {
+		limit = DefaultStudentSearchLimit
+	}
+	if limit > MaxStudentSearchLimit {
+		limit = MaxStudentSearchLimit
+	}
+
+	pipeline := []bson.M{
+		{
+			"$match": matchFilter,
+		},
 		{
 			"$lookup": bson.M{
 				"from":         constants.COLLECTION_GROUP,
@@ -274,7 +349,17 @@ func GetAllStudents(mongikClient *models.Mongik, noCache bool) (*[]model.Student
 				"as":           "groups",
 			},
 		},
-	}, noCache)
+		{
+			"$sort": bson.M{
+				"rollNo": 1,
+			},
+		},
+		{
+			"$limit": limit,
+		},
+	}
+
+	students, err := db.Aggregate[model.StudentPopulated](mongikClient, constants.DB, constants.COLLECTION_STUDENT, pipeline, noCache)
 	return &students, err
 }
 

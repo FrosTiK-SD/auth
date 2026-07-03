@@ -70,8 +70,8 @@ func main() {
 
 	student := r.Group("/api/student")
 	{
-		student.GET("", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_ADMIN), handler.GetAllStudents)
-		student.GET("/id", handler.GinVerifyStudent,handler.GetRoleCheckHandlerForStudent(constants.ROLE_ADMIN), handler.GetStudentById)
+		student.GET("", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_OPPORTUNITIES_WRITE), handler.GetAllStudents)
+		student.GET("/id", handler.GinVerifyStudent,handler.GetRoleCheckHandlerForStudent(constants.ROLE_OPPORTUNITIES_WRITE), handler.GetStudentById)
 		student.GET("/tpr/all", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_ADMIN), handler.GetAllTprs)
 		student.GET("/tprLogin", handler.GinVerifyStudent, handler.GetRoleCheckHandlerForStudent(constants.ROLE_TPR), handler.HandlerTprLogin)
 		student.PUT("/update", handler.GinVerifyStudent, handler.HandlerUpdateStudentDetails)
