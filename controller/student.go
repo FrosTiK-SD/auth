@@ -278,6 +278,93 @@ func GetAllStudents(mongikClient *models.Mongik, noCache bool) (*[]model.Student
 	return &students, err
 }
 
+func BuildStudentExportFilter(startYear int, endYear int, status string) bson.M {
+	filter := bson.M{}
+
+	if startYear != 0 {
+		filter["batch.startYear"] = startYear
+	}
+	if endYear != 0 {
+		filter["batch.endYear"] = endYear
+	}
+
+	switch strings.ToLower(strings.TrimSpace(status)) {
+	case "placed":
+		filter["isPlaced"] = true
+	case "ppo":
+		filter["hasPPO"] = true
+	case "intern", "interned", "internship":
+		filter["isInterned"] = true
+	case "allowed", "alloted", "allotted":
+		filter["companiesAlloted.0"] = bson.M{"$exists": true}
+	case "unplaced":
+		filter["isPlaced"] = bson.M{"$ne": true}
+	case "not-ppo":
+		filter["hasPPO"] = bson.M{"$ne": true}
+	case "not-interned":
+		filter["isInterned"] = bson.M{"$ne": true}
+	}
+
+	return filter
+}
+
+func GetStudentsForExport(mongikClient *models.Mongik, startYear int, endYear int, status string) (*[]studentModel.Student, error) {
+	studentCollection := mongikClient.MongoClient.Database(constants.DB).Collection(constants.COLLECTION_STUDENT)
+	filter := BuildStudentExportFilter(startYear, endYear, status)
+
+	cursor, err := studentCollection.Find(context.Background(), filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.Background())
+
+	var students []studentModel.Student
+	if err := cursor.All(context.Background(), &students); err != nil {
+		return nil, err
+	}
+
+	return &students, nil
+}
+
+func UpdateStudentPlacementStatus(mongikClient *models.Mongik, studentId primitive.ObjectID, update bson.M) (*studentModel.Student, error) {
+	studentCollection := mongikClient.MongoClient.Database(constants.DB).Collection(constants.COLLECTION_STUDENT)
+	filter := bson.M{"_id": studentId}
+
+	update["updatedAt"] = primitive.NewDateTimeFromTime(time.Now().UTC())
+
+	var currentStudent studentModel.Student
+	if err := studentCollection.FindOne(context.Background(), filter).Decode(&currentStudent); err != nil {
+		return nil, err
+	}
+
+	if value, ok := update["isInterned"].(bool); ok {
+		currentStudent.IsInterned = value
+	}
+	if value, ok := update["internCompany"].(string); ok {
+		currentStudent.InternCompany = value
+	}
+	if value, ok := update["hasPPO"].(bool); ok {
+		currentStudent.HasPPO = value
+	}
+	if value, ok := update["ppoCompany"].(string); ok {
+		currentStudent.PPOCompany = value
+	}
+	if value, ok := update["isPlaced"].(bool); ok {
+		currentStudent.IsPlaced = value
+	}
+	if value, ok := update["placedCompany"].(string); ok {
+		currentStudent.PlacedCompany = value
+	}
+	currentStudent.UpdatedAt = update["updatedAt"].(primitive.DateTime)
+
+	if _, err := db.ReplaceOne(mongikClient, constants.DB, constants.COLLECTION_STUDENT, filter, &currentStudent); err != nil {
+		return nil, err
+	}
+	InvalidateStudentCache(mongikClient, currentStudent.InstituteEmail)
+
+	return &currentStudent, nil
+}
+
 func GetStudentById(mongikClient *models.Mongik, _id primitive.ObjectID, noCache bool) (*model.StudentPopulated, error) {
 	student, err := db.AggregateOne[model.StudentPopulated](mongikClient, constants.DB, constants.COLLECTION_STUDENT, []bson.M{
 		{

@@ -28,3 +28,12 @@ type UnverifyBatchRequest struct {
 	StartYear int `json:"startYear" bson:"startYear" binding:"required"`
 	EndYear   int `json:"endYear" bson:"endYear" binding:"required"`
 }
+
+type StudentPlacementStatusUpdate struct {
+	IsInterned    *bool  `json:"isInterned" bson:"isInterned"`
+	InternCompany *string `json:"internCompany" bson:"internCompany"`
+	HasPPO        *bool  `json:"hasPPO" bson:"hasPPO"`
+	PPOCompany    *string `json:"ppoCompany" bson:"ppoCompany"`
+	IsPlaced      *bool  `json:"isPlaced" bson:"isPlaced"`
+	PlacedCompany *string `json:"placedCompany" bson:"placedCompany"`
+}
