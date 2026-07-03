@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/FrosTiK-SD/auth/constants"
 	"github.com/FrosTiK-SD/auth/controller"
 	"github.com/FrosTiK-SD/auth/interfaces"
+	"github.com/FrosTiK-SD/auth/model"
 	"github.com/FrosTiK-SD/auth/util"
 	"github.com/gin-gonic/gin"
 )
@@ -45,6 +47,13 @@ func (h *Handler) BatchCreateGroup(ctx *gin.Context) {
 			"error":   constants.ERROR_MONGO_ERROR,
 			"message": err,
 		})
+		return
+	}
+
+	admin, exists := ctx.Get(constants.SESSION)
+	if exists {
+		adminStudent := admin.(*model.StudentPopulated)
+		h.LogActivityDirect(adminStudent.Id, "CREATE", fmt.Sprintf("Batch created %d groups", len(batchCreateGroupRequest.Groups)))
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
@@ -76,6 +85,11 @@ func (h *Handler) BatchEditGroup(ctx *gin.Context) {
 			"error": errors,
 		})
 	} else {
+		admin, exists := ctx.Get(constants.SESSION)
+		if exists {
+			adminStudent := admin.(*model.StudentPopulated)
+			h.LogActivityDirect(adminStudent.Id, "EDIT", "Batch edited groups (assigned/unassigned roles)")
+		}
 		ctx.JSON(http.StatusOK, gin.H{
 			"data": gin.H{
 				"addList":    addResult,
@@ -112,6 +126,12 @@ func (h *Handler) BatchDeleteGroup(ctx *gin.Context) {
 		return
 	}
 
+	admin, exists := ctx.Get(constants.SESSION)
+	if exists {
+		adminStudent := admin.(*model.StudentPopulated)
+		h.LogActivityDirect(adminStudent.Id, "DELETE", fmt.Sprintf("Batch deleted %d groups", len(batchDeleteGroupRequest.Groups)))
+	}
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"data": gin.H{
 			"group":    groupResult,
@@ -142,6 +162,12 @@ func (h *Handler) BatchAssignGroup(ctx *gin.Context) {
 			"error": errors,
 		})
 		return
+	}
+
+	admin, exists := ctx.Get(constants.SESSION)
+	if exists {
+		adminStudent := admin.(*model.StudentPopulated)
+		h.LogActivityDirect(adminStudent.Id, "EDIT", fmt.Sprintf("Batch assigned/unassigned groups for %d students", len(batchAssignGroupRequest)))
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{

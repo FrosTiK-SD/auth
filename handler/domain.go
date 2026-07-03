@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/FrosTiK-SD/auth/constants"
 	"github.com/FrosTiK-SD/auth/controller"
 	"github.com/FrosTiK-SD/auth/interfaces"
+	"github.com/FrosTiK-SD/auth/model"
 	"github.com/FrosTiK-SD/auth/util"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -80,6 +82,11 @@ func (h *Handler) BatchCreateDomain(ctx *gin.Context) {
 		})
 		return
 	}
+	admin, exists := ctx.Get(constants.SESSION)
+	if exists {
+		adminStudent := admin.(*model.StudentPopulated)
+		h.LogActivityDirect(adminStudent.Id, "CREATE", fmt.Sprintf("Batch created %d domains", len(batchCreateDomainRequest.Domains)))
+	}
 	ctx.JSON(http.StatusOK, gin.H{
 		"data": gin.H{
 			"newDomains": newDomains,
@@ -126,6 +133,12 @@ func (h *Handler) EditDomainById(ctx *gin.Context) {
 		return
 	}
 
+	admin, exists := ctx.Get(constants.SESSION)
+	if exists {
+		adminStudent := admin.(*model.StudentPopulated)
+		h.LogActivityDirect(adminStudent.Id, "EDIT", fmt.Sprintf("Edited domain (ID: %s)", domainId.Hex()))
+	}
+
 	ctx.AbortWithStatusJSON(http.StatusOK, gin.H{
 		"data": gin.H{
 			"oldDomain":        oldDomain,
@@ -162,6 +175,12 @@ func (h *Handler) DeleteDomainById(ctx *gin.Context) {
 			"message": err,
 		})
 		return
+	}
+
+	admin, exists := ctx.Get(constants.SESSION)
+	if exists {
+		adminStudent := admin.(*model.StudentPopulated)
+		h.LogActivityDirect(adminStudent.Id, "DELETE", fmt.Sprintf("Deleted domain (ID: %s)", domainId.Hex()))
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{

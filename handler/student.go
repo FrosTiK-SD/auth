@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"fmt"
 
 	"github.com/FrosTiK-SD/auth/constants"
 	"github.com/FrosTiK-SD/auth/controller"
@@ -394,6 +395,12 @@ func (h *Handler) HandlerVerifyStudentProfile(ctx *gin.Context) {
 		return
 	}
 
+	lastNameStr := ""
+	if student.LastName != nil {
+		lastNameStr = *student.LastName
+	}
+	h.LogActivityDirect(adminStudent.Id, "EDIT", fmt.Sprintf("Verified student profile for %s %s (%s) - Roll No: %d", student.FirstName, lastNameStr, student.InstituteEmail, student.RollNo))
+
 	ctx.JSON(200, gin.H{"message": "Profile verified successfully", "student": student})
 }
 
@@ -454,6 +461,13 @@ func (h *Handler) HandlerAdminUpdateStudentDetails(ctx *gin.Context) {
 		return
 	}
 
+	admin, exists := ctx.Get(constants.SESSION)
+	if !exists {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	adminStudent := admin.(*model.StudentPopulated)
+
 	var studentProfile interfaces.StudentProfile
 	if errBinding := ctx.ShouldBindJSON(&studentProfile); errBinding != nil {
 		ctx.AbortWithStatusJSON(400, gin.H{"error": errBinding.Error()})
@@ -478,6 +492,11 @@ func (h *Handler) HandlerAdminUpdateStudentDetails(ctx *gin.Context) {
 		return
 	} else {
 		controller.InvalidateStudentCache(h.MongikClient, currentStudent.InstituteEmail)
+		lastNameStr := ""
+		if currentStudent.LastName != nil {
+			lastNameStr = *currentStudent.LastName
+		}
+		h.LogActivityDirect(adminStudent.Id, "EDIT", fmt.Sprintf("Updated student details for %s %s (%s) - Roll No: %d", currentStudent.FirstName, lastNameStr, currentStudent.InstituteEmail, currentStudent.RollNo))
 		ctx.JSON(200, gin.H{"student": updateResult})
 	}
 }
@@ -494,6 +513,13 @@ func (h *Handler) HandlerUnverifyStudentProfilesByBatch(ctx *gin.Context) {
 		return
 	}
 
+	admin, exists := ctx.Get(constants.SESSION)
+	if !exists {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	adminStudent := admin.(*model.StudentPopulated)
+
 	updatedCount, errs := controller.UnverifyStudentProfilesByBatch(h.MongikClient, req.StartYear, req.EndYear)
 
 	if len(errs) > 0 {
@@ -504,6 +530,8 @@ func (h *Handler) HandlerUnverifyStudentProfilesByBatch(ctx *gin.Context) {
 		})
 		return
 	}
+
+	h.LogActivityDirect(adminStudent.Id, "EDIT", fmt.Sprintf("Unverified profiles for batch: %d-%d (total %d students updated)", req.StartYear, req.EndYear, updatedCount))
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"message":      "Successfully unverified all profiles in batch",
@@ -517,6 +545,13 @@ func (h *Handler) HandlerAdminUpdateStudentPlacementStatus(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid student ID"})
 		return
 	}
+
+	admin, exists := ctx.Get(constants.SESSION)
+	if !exists {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	adminStudent := admin.(*model.StudentPopulated)
 
 	var req interfaces.StudentPlacementStatusUpdate
 	if errBinding := ctx.ShouldBindJSON(&req); errBinding != nil {
@@ -549,6 +584,12 @@ func (h *Handler) HandlerAdminUpdateStudentPlacementStatus(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	lastNameStr := ""
+	if student.LastName != nil {
+		lastNameStr = *student.LastName
+	}
+	h.LogActivityDirect(adminStudent.Id, "EDIT", fmt.Sprintf("Updated placement status for student %s %s (%s) - Roll No: %d", student.FirstName, lastNameStr, student.InstituteEmail, student.RollNo))
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "Student placement status updated successfully",

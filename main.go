@@ -117,6 +117,12 @@ func main() {
 		register.POST("/recruiterAndCompany", handler.CreateRecruiterAndCompany)
 	}
 
+	logs := r.Group("/api/logs", handler.GinVerifyStudent)
+	{
+		logs.GET("", handler.GetRoleCheckHandlerForStudent(constants.ROLE_ADMIN), handler.GetActivityLogs)
+		logs.POST("", handler.GetRoleCheckHandlerForStudent(constants.ROLE_ADMIN), handler.CreateActivityLog)
+	}
+
 	port := "" + os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
