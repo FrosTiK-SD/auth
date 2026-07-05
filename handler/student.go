@@ -399,7 +399,9 @@ func (h *Handler) HandlerVerifyStudentProfile(ctx *gin.Context) {
 	if student.LastName != nil {
 		lastNameStr = *student.LastName
 	}
-	h.LogActivityDirect(adminStudent.Id, "EDIT", fmt.Sprintf("Verified student profile for %s %s (%s) - Roll No: %d", student.FirstName, lastNameStr, student.InstituteEmail, student.RollNo))
+	if util.CheckRoleExists(&adminStudent.GroupDetails, constants.ROLE_ADMIN) {
+		h.LogActivityDirect(adminStudent.Id, "EDIT", fmt.Sprintf("Verified student profile for %s %s (%s) - Roll No: %d", student.FirstName, lastNameStr, student.InstituteEmail, student.RollNo))
+	}
 
 	ctx.JSON(200, gin.H{"message": "Profile verified successfully", "student": student})
 }
