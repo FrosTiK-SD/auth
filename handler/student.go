@@ -110,8 +110,15 @@ func GetStudentRoleObjectID() primitive.ObjectID {
 }
 
 func (h *Handler) GetAllStudents(ctx *gin.Context) {
-
 	noCache := util.GetNoCache(ctx)
+
+	query := strings.TrimSpace(ctx.Query("query"))
+	if len(query) < controller.MinStudentSearchQueryLength {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": "query param is required (min 2 characters) — search by name or roll number",
+		})
+		return
+	}
 
 	startYear, err := strconv.Atoi(ctx.DefaultQuery("startYear", "0"))
 	if err != nil {
@@ -132,7 +139,7 @@ func (h *Handler) GetAllStudents(ctx *gin.Context) {
 	}
 
 	students, err := controller.SearchStudents(h.MongikClient, controller.StudentSearchFilter{
-		Query:      ctx.Query("query"),
+		Query:      query,
 		StartYear:  startYear,
 		EndYear:    endYear,
 		Course:     ctx.Query("course"),
@@ -142,7 +149,7 @@ func (h *Handler) GetAllStudents(ctx *gin.Context) {
 
 	if err != nil {
 		status := http.StatusInternalServerError
-		if strings.Contains(err.Error(), "provide at least one student filter") {
+		if strings.Contains(err.Error(), "query must be at least") {
 			status = http.StatusBadRequest
 		}
 		ctx.AbortWithStatusJSON(status, gin.H{
@@ -151,11 +158,10 @@ func (h *Handler) GetAllStudents(ctx *gin.Context) {
 		})
 		return
 	}
-	ctx.JSON(http.StatusOK,
-		gin.H{
-			"data":  students,
-			"error": nil,
-		})
+	ctx.JSON(http.StatusOK, gin.H{
+		"data":  students,
+		"error": nil,
+	})
 }
 
 func (h *Handler) GetStudentDirectory(ctx *gin.Context) {

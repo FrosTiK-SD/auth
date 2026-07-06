@@ -283,50 +283,48 @@ func GetAllStudents(mongikClient *models.Mongik, noCache bool) (*[]model.Student
 	return SearchStudents(mongikClient, StudentSearchFilter{Limit: MaxStudentSearchLimit}, noCache)
 }
 
+const MinStudentSearchQueryLength int = 2
+
 func BuildStudentSearchMatchFilter(filter StudentSearchFilter) (bson.M, bool) {
-	matchFilter := bson.M{}
-	hasFilter := false
-
-	if filter.StartYear != 0 {
-		matchFilter["batch.startYear"] = filter.StartYear
-		hasFilter = true
-	}
-	if filter.EndYear != 0 {
-		matchFilter["batch.endYear"] = filter.EndYear
-		hasFilter = true
-	}
-	if strings.TrimSpace(filter.Course) != "" {
-		matchFilter["course"] = strings.TrimSpace(filter.Course)
-		hasFilter = true
-	}
-	if strings.TrimSpace(filter.Department) != "" {
-		matchFilter["department"] = strings.ToLower(strings.TrimSpace(filter.Department))
-		hasFilter = true
-	}
-
 	query := strings.TrimSpace(filter.Query)
-	if query != "" {
-		hasFilter = true
-		if rollNo, err := strconv.Atoi(query); err == nil {
-			matchFilter["rollNo"] = rollNo
-		} else {
-			nameRegex := primitive.Regex{Pattern: regexp.QuoteMeta(query), Options: "i"}
-			matchFilter["$or"] = []bson.M{
-				{"firstName": nameRegex},
-				{"middleName": nameRegex},
-				{"lastName": nameRegex},
-				{"email": nameRegex},
-			}
+	if len(query) < MinStudentSearchQueryLength {
+		return bson.M{}, false
+	}
+
+	matchFilter := bson.M{}
+
+	if rollNo, err := strconv.Atoi(query); err == nil {
+		matchFilter["rollNo"] = rollNo
+	} else {
+		nameRegex := primitive.Regex{Pattern: regexp.QuoteMeta(query), Options: "i"}
+		matchFilter["$or"] = []bson.M{
+			{"firstName": nameRegex},
+			{"middleName": nameRegex},
+			{"lastName": nameRegex},
+			{"email": nameRegex},
 		}
 	}
 
-	return matchFilter, hasFilter
+	if filter.StartYear != 0 {
+		matchFilter["batch.startYear"] = filter.StartYear
+	}
+	if filter.EndYear != 0 {
+		matchFilter["batch.endYear"] = filter.EndYear
+	}
+	if strings.TrimSpace(filter.Course) != "" {
+		matchFilter["course"] = strings.TrimSpace(filter.Course)
+	}
+	if strings.TrimSpace(filter.Department) != "" {
+		matchFilter["department"] = strings.ToLower(strings.TrimSpace(filter.Department))
+	}
+
+	return matchFilter, true
 }
 
 func SearchStudents(mongikClient *models.Mongik, filter StudentSearchFilter, noCache bool) (*[]model.StudentPopulated, error) {
 	matchFilter, hasFilter := BuildStudentSearchMatchFilter(filter)
 	if !hasFilter {
-		return nil, errors.New("provide at least one student filter")
+		return nil, errors.New("query must be at least 2 characters (name or roll number)")
 	}
 
 	limit := filter.Limit
@@ -338,9 +336,7 @@ func SearchStudents(mongikClient *models.Mongik, filter StudentSearchFilter, noC
 	}
 
 	pipeline := []bson.M{
-		{
-			"$match": matchFilter,
-		},
+		{"$match": matchFilter},
 		{
 			"$lookup": bson.M{
 				"from":         constants.COLLECTION_GROUP,
@@ -349,14 +345,8 @@ func SearchStudents(mongikClient *models.Mongik, filter StudentSearchFilter, noC
 				"as":           "groups",
 			},
 		},
-		{
-			"$sort": bson.M{
-				"rollNo": 1,
-			},
-		},
-		{
-			"$limit": limit,
-		},
+		{"$sort": bson.M{"rollNo": 1}},
+		{"$limit": limit},
 	}
 
 	students, err := db.Aggregate[model.StudentPopulated](mongikClient, constants.DB, constants.COLLECTION_STUDENT, pipeline, noCache)
