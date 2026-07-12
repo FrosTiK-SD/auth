@@ -103,10 +103,19 @@ jobs:
           username: _json_key
           password: ${{ secrets.GCP_CREDENTIALS_TPC_DEPLOYMENTS }}
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build and Push Container
         run: |-
-          docker build -t "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}" . -f Dockerfile.production
+          docker buildx build \
+            --secret id=gh_token,env=GH_PAT \
+            --load \
+            -t "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}" \
+            -f Dockerfile.production .
           docker push "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}"
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
 
       # END - Docker auth and build
 

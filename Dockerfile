@@ -16,10 +16,14 @@ ENV GIN_MODE=release
 
 WORKDIR "$APP_HOME"
 
+RUN go env -w GOPRIVATE=github.com/FrosTiK-SD/*
+
 COPY go.mod .
 COPY go.sum .
 
-RUN go mod download
+RUN --mount=type=secret,id=gh_token \
+    git config --global url."https://x-access-token:$(cat /run/secrets/gh_token)@github.com/".insteadOf "https://github.com/" \
+    && go mod download
 
 COPY . .
 RUN go build -tags=jsoniter -o authv2 
