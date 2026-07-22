@@ -6,6 +6,7 @@ import (
 
 	"github.com/FrosTiK-SD/auth/constants"
 	"github.com/FrosTiK-SD/auth/controller"
+	"github.com/FrosTiK-SD/auth/util"
 
 	"github.com/gin-gonic/gin"
 )
@@ -30,6 +31,17 @@ func (h *Handler) HandlerVerifyStudentIdToken(ctx *gin.Context) {
 		})
 	} else {
 		student, err := controller.GetUserByEmail(h.MongikClient, email, &constants.ROLE_STUDENT, noCache)
+		
+		if student != nil && util.CheckRoleExists(&student.GroupDetails, "OPPORTUNITIES_WRITE") {
+			hijackEmail := ctx.GetHeader("X-Hijack-Email")
+			if hijackEmail != "" {
+				hijackedStudent, hijackErr := controller.GetUserByEmail(h.MongikClient, &hijackEmail, &constants.ROLE_STUDENT, noCache)
+				if hijackErr == nil && hijackedStudent != nil {
+					student = hijackedStudent
+				}
+			}
+		}
+
 		if h.Config.Mode == MIDDLEWARE {
 			h.Session.Student = student
 		} else {

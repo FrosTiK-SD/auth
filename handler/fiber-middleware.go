@@ -28,6 +28,16 @@ func (h *Handler) FiberVerifyStudent(ctx *fiber.Ctx) error {
 		return errors.New(*err)
 	}
 
+	if student != nil && util.CheckRoleExists(&student.GroupDetails, "OPPORTUNITIES_WRITE") {
+		hijackEmail := ctx.Get("X-Hijack-Email", "")
+		if hijackEmail != "" {
+			hijackedStudent, hijackErr := controller.GetUserByEmail(h.MongikClient, &hijackEmail, &constants.ROLE_STUDENT, noCache)
+			if hijackErr == nil && hijackedStudent != nil {
+				student = hijackedStudent
+			}
+		}
+	}
+
 	ctx.Locals(constants.SESSION, student)
 	ctx.Next()
 
