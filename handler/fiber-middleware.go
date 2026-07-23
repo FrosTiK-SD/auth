@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/FrosTiK-SD/auth/constants"
 	"github.com/FrosTiK-SD/auth/controller"
@@ -26,6 +27,24 @@ func (h *Handler) FiberVerifyStudent(ctx *fiber.Ctx) error {
 	student, err := controller.GetUserByEmail(h.MongikClient, email, &constants.ROLE_STUDENT, noCache)
 	if err != nil {
 		return errors.New(*err)
+	}
+
+	canHijack := false
+	if student != nil {
+		canHijack = util.CheckRoleExists(&student.GroupDetails, "OPPORTUNITIES_WRITE")
+	}
+	if canHijack {
+		hijackEmail := ctx.Get("X-Hijack-Email", "")
+		if hijackEmail != "" {
+			hijackedStudent, hijackErr := controller.GetUserByEmail(h.MongikClient, &hijackEmail, &constants.ROLE_STUDENT, noCache)
+			if hijackErr == nil && hijackedStudent != nil {
+				h.LogActivityDirect(student.Id, "ADMIN_IMPERSONATION", fmt.Sprintf(
+					"Admin %s impersonated student %s",
+					student.InstituteEmail, hijackedStudent.InstituteEmail,
+				))
+				student = hijackedStudent
+			}
+		}
 	}
 
 	ctx.Locals(constants.SESSION, student)

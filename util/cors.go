@@ -8,7 +8,7 @@ func DefaultCors() cors.Config {
 	config := cors.DefaultConfig()
 	config.AllowAllOrigins = true
 	config.AllowHeaders = append(config.AllowHeaders, "Content-Type,access-control-allow-origin, access-control-allow-headers")
-	config.AllowHeaders = append(config.AllowHeaders, "token", "id")
+	config.AllowHeaders = append(config.AllowHeaders, "token", "id", "cache-control", "X-Hijack-Email")
 
 	return config
 }
