@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/FrosTiK-SD/auth/constants"
@@ -31,12 +32,16 @@ func (h *Handler) HandlerVerifyStudentIdToken(ctx *gin.Context) {
 		})
 	} else {
 		student, err := controller.GetUserByEmail(h.MongikClient, email, &constants.ROLE_STUDENT, noCache)
-		
+
 		if student != nil && util.CheckRoleExists(&student.GroupDetails, "OPPORTUNITIES_WRITE") {
 			hijackEmail := ctx.GetHeader("X-Hijack-Email")
 			if hijackEmail != "" {
 				hijackedStudent, hijackErr := controller.GetUserByEmail(h.MongikClient, &hijackEmail, &constants.ROLE_STUDENT, noCache)
 				if hijackErr == nil && hijackedStudent != nil {
+					h.LogActivityDirect(student.Id, "ADMIN_IMPERSONATION", fmt.Sprintf(
+						"Admin %s impersonated student %s",
+						student.InstituteEmail, hijackedStudent.InstituteEmail,
+					))
 					student = hijackedStudent
 				}
 			}
@@ -69,7 +74,7 @@ func (h *Handler) HandlerVerifyRecruiterIdToken(ctx *gin.Context) {
 		recruiter, recErr := controller.GetRecruiterByEmail(h.MongikClient, email, &constants.ROLE_RECRUITER, noCache)
 		if recErr != nil {
 			ctx.JSON(http.StatusOK, gin.H{
-				"data": nil,
+				"data":  nil,
 				"error": recErr,
 			})
 			return

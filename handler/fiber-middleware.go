@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/FrosTiK-SD/auth/constants"
 	"github.com/FrosTiK-SD/auth/controller"
@@ -33,6 +34,10 @@ func (h *Handler) FiberVerifyStudent(ctx *fiber.Ctx) error {
 		if hijackEmail != "" {
 			hijackedStudent, hijackErr := controller.GetUserByEmail(h.MongikClient, &hijackEmail, &constants.ROLE_STUDENT, noCache)
 			if hijackErr == nil && hijackedStudent != nil {
+				h.LogActivityDirect(student.Id, "ADMIN_IMPERSONATION", fmt.Sprintf(
+					"Admin %s impersonated student %s",
+					student.InstituteEmail, hijackedStudent.InstituteEmail,
+				))
 				student = hijackedStudent
 			}
 		}
