@@ -29,7 +29,11 @@ func (h *Handler) FiberVerifyStudent(ctx *fiber.Ctx) error {
 		return errors.New(*err)
 	}
 
-	if student != nil && util.CheckRoleExists(&student.GroupDetails, "OPPORTUNITIES_WRITE") {
+	canHijack := false
+	if student != nil {
+		canHijack = util.CheckRoleExists(&student.GroupDetails, "OPPORTUNITIES_WRITE")
+	}
+	if canHijack {
 		hijackEmail := ctx.Get("X-Hijack-Email", "")
 		if hijackEmail != "" {
 			hijackedStudent, hijackErr := controller.GetUserByEmail(h.MongikClient, &hijackEmail, &constants.ROLE_STUDENT, noCache)
