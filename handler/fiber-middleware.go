@@ -36,7 +36,7 @@ func (h *Handler) FiberVerifyStudent(ctx *fiber.Ctx) error {
 	}
 
 	if impersonateId != "" {
-		if util.CheckRoleExists(&student.GroupDetails, constants.ROLE_OPPORTUNITIES_WRITE) || util.CheckRoleExists(&student.GroupDetails, constants.ROLE_ADMIN) {
+		if util.CheckRoleExists(&student.GroupDetails, constants.ROLE_OPPORTUNITIES_WRITE) {
 			targetObjId, parseErr := primitive.ObjectIDFromHex(impersonateId)
 			if parseErr == nil {
 				targetStudent, targetErr := controller.GetStudentById(h.MongikClient, targetObjId, noCache)
