@@ -2,12 +2,14 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/FrosTiK-SD/auth/constants"
 	"github.com/FrosTiK-SD/auth/controller"
 	"github.com/FrosTiK-SD/auth/interfaces"
 	"github.com/FrosTiK-SD/auth/util"
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // For Gin based middlewares
@@ -26,6 +28,26 @@ func (h *Handler) FiberVerifyStudent(ctx *fiber.Ctx) error {
 	student, err := controller.GetUserByEmail(h.MongikClient, email, &constants.ROLE_STUDENT, noCache)
 	if err != nil {
 		return errors.New(*err)
+	}
+
+	impersonateId := ctx.Get("x-impersonate-student-id", "")
+	if impersonateId == "" {
+		impersonateId = ctx.Get("X-Impersonate-Student-Id", "")
+	}
+
+	if impersonateId != "" {
+		if util.CheckRoleExists(&student.GroupDetails, constants.ROLE_OPPORTUNITIES_WRITE) {
+			targetObjId, parseErr := primitive.ObjectIDFromHex(impersonateId)
+			if parseErr == nil {
+				targetStudent, targetErr := controller.GetStudentById(h.MongikClient, targetObjId, noCache)
+				if targetErr == nil && targetStudent != nil {
+					h.LogActivityDirect(student.Id, "IMPERSONATION", fmt.Sprintf("Admin %s (%s) impersonating Student %s (%s)", student.FirstName, student.InstituteEmail, targetStudent.FirstName, targetStudent.InstituteEmail))
+					student = targetStudent
+				}
+			}
+		} else {
+			return errors.New("Unauthorized impersonation attempt")
+		}
 	}
 
 	ctx.Locals(constants.SESSION, student)
