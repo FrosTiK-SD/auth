@@ -47,6 +47,7 @@ func (h *Handler) GetActivityLogs(ctx *gin.Context) {
 		skip = 0
 	}
 	pipeline := []bson.M{
+		{"$sort": bson.M{"timestamp": -1}},
 		{
 			"$lookup": bson.M{
 				"from":         constants.COLLECTION_STUDENT,
@@ -74,7 +75,6 @@ func (h *Handler) GetActivityLogs(ctx *gin.Context) {
 		}
 		pipeline = append(pipeline, bson.M{"$match": matchFilter})
 	}
-	pipeline = append(pipeline, bson.M{"$sort": bson.M{"timestamp": -1}})
 	facetPipeline := append(pipeline, bson.M{
 		"$facet": bson.M{
 			"metadata": []bson.M{
